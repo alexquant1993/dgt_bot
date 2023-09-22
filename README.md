@@ -32,7 +32,7 @@ Before you can use **DGTBot**, make sure you have the following requirements ins
 
 - Python 3.x
 - Selenium: `pip install selenium`
-- WebDriver for Chrome (ChromeDriver): [Download here](https://sites.google.com/a/chromium.org/chromedriver/downloads) and add it to your system's PATH.
+- WebDriver for Chrome (ChromeDriver): [Download here](https://sites.google.com/chromium.org/driver/) and add it to your system's PATH.
 - Latest User Agents: `pip install latest-user-agents`
 - httpagentparser: `pip install httpagentparser`
 - TwoCaptcha API key (optional, if using 2Captcha service): [Sign up here](https://2captcha.com/)

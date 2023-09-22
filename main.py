@@ -187,36 +187,34 @@ class DGTBot:
         # self.driver.execute_script("arguments[0].style.display = 'block';", recaptcha_response_element)
         # self.driver.execute_script(f'arguments[0].value = "{code}";', recaptcha_response_element)        
         
+        # Solve reCAPTCHA v3
+        solver_config = {
+            'apiKey': self.TWO_CAPTCHA_API_KEY,
+            'defaultTimeout': 120,
+            'recaptchaTimeout': 600,
+            'pollingInterval': 10,
+        }
+        solver = TwoCaptcha(**solver_config)
+        response = solver.recaptcha(
+            sitekey=self.SITE_KEY_V3,
+            url=self.base_url,
+            version='v3',
+            score = 0.7,
+            action = 'solicitarCita'
+        )
+        token = response['code']
+        self.driver.execute_script(f'''
+            console.log('{token}');
+            document.getElementById("publicacionesForm:responseV3").value = '{token}';
+        ''')
+        
         # Solve reCAPTCHA v2
         solver = RecaptchaSolver(self.driver)
         recaptcha_iframe = self.driver.find_element(By.XPATH, '//iframe[@title="reCAPTCHA"]')
         solver.click_recaptcha_v2(iframe=recaptcha_iframe)
-        
-        # Solve reCAPTCHA v3
-        # solver_config = {
-        #     'apiKey': self.TWO_CAPTCHA_API_KEY,
-        #     'defaultTimeout': 120,
-        #     'recaptchaTimeout': 600,
-        #     'pollingInterval': 10,
-        # }
-        # solver = TwoCaptcha(**solver_config)
-        # response = solver.recaptcha(
-        #     sitekey=self.SITE_KEY_V3,
-        #     url=self.base_url,
-        #     version='v3',
-        #     score = 0.7,
-        #     action = 'solicitarCita'
-        # )
-        # token = response['code']
-        # self.driver.execute_script(f'''
-        #     console.log('{token}');
-        #     document.getElementById("publicacionesForm:responseV3").value = '{token}';
-        # ''')
-        
+
         # Simulate human behavior   
         time.sleep(self.get_random_sleep_interval())
-        self.random_mouse_movements()
-        self.scroll_page()    
     
     def submit_form(self):
         """
@@ -238,10 +236,15 @@ class DGTBot:
             return 'retry_setting_up_driver'
             
         # Populate the form fields
-        self.fill_field(self.office_id, self.office)
-        self.fill_field(self.type_procedure_id, self.type_procedure)
-        if self.country:
-            self.fill_field(self.country_id, self.country)
+        try:
+            self.fill_field(self.office_id, self.office)
+            self.fill_field(self.type_procedure_id, self.type_procedure)
+            if self.country:
+                self.fill_field(self.country_id, self.country)
+        except Exception as e:
+            logging.error(f"Error filling the form: {str(e)}")
+            self.driver.quit()
+            return 'retry_filling_form'
         
         # Solve the CAPTCHA
         try:
@@ -295,7 +298,7 @@ class DGTBot:
                 if response == 'appointment_available':
                     return response
                 elif response == 'retry_setting_up_driver' or \
-                    response == 'retry_failed_captcha':
+                    response == 'retry_failed_captcha' or 'retry_filling_form':
                     logging.info(f"Retrying... ({retry_count}) - ({response})")
                     time.sleep(self.exponential_backoff_with_jitter(retry_count))
                     retry_count += 1
